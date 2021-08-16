@@ -1,0 +1,62 @@
+
+
+service: crud-serverless-nestjs
+
+frameworkVersion: '2'
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+custom:
+  pOwner: tcin
+  pEnvironment: ${opt:stage, self:provider.stage}
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        - dynamodb:Query
+        - dynamodb:DeleteItem
+        - dynamodb:UpdateItem
+      Resource: "*"
+  environment:
+    DYNAMODB_TABLE_NAME: ${self:custom.pOwner}-${self:custom.pEnvironment}-crud-serverless-nestjs
+    ENVIRONMENT: ${self:custom.pEnvironment}
+    REGION: us-east-1
+functions:
+  main:
+    name: ${self:service}-proxy
+    handler: src/main.handler
+    # Uncomment Events block to test from local
+    events:
+      - http:
+          method: any
+          path: /{proxy+}
+
+
+
+resources: # CloudFormation template syntax
+  Description: 'CloudFormation Template for Demo Event'
+  Resources:
+    CrudServerlessTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.pOwner}-${self:custom.pEnvironment}-crud-serverless-nestjs
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: 'S'
+          - AttributeName: sk
+            AttributeType: 'S'
+
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
